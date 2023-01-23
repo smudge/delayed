@@ -210,27 +210,15 @@ module Delayed
     end
 
     def alert_age
-      if payload_object.respond_to?(:alert_age)
-        payload_object.alert_age
-      else
-        priority.alert_age
-      end
+      payload_method(:alert_age) { priority.alert_age }
     end
 
     def alert_run_time
-      if payload_object.respond_to?(:alert_run_time)
-        payload_object.alert_run_time
-      else
-        priority.alert_run_time
-      end
+      payload_method(:alert_run_time) { priority.alert_run_time }
     end
 
     def alert_attempts
-      if payload_object.respond_to?(:alert_attempts)
-        payload_object.alert_attempts
-      else
-        priority.alert_attempts
-      end
+      payload_method(:alert_attempts) { priority.alert_attempts }
     end
 
     def age

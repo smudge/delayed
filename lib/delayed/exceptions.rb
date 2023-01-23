@@ -9,6 +9,6 @@ module Delayed
   end
 
   class FatalBackendError < RuntimeError; end
-
   class DeserializationError < StandardError; end
+  class AdapterDeserializationError < StandardError; end
 end

@@ -57,12 +57,8 @@ module Delayed
 
       ParseObjectFromYaml = %r{!ruby/\w+:([^\s]+)}.freeze # rubocop:disable Naming/ConstantName
 
-      def name # rubocop:disable Metrics/AbcSize
-        @name ||= payload_object.job_data['job_class'] if payload_object.respond_to?(:job_data)
-        @name ||= payload_object.display_name if payload_object.respond_to?(:display_name)
-        @name ||= payload_object.class.name
-      rescue DeserializationError
-        ParseObjectFromYaml.match(handler)[1]
+      def name
+        payload_method(:display_name) || payload_method(:class) { ParseObjectFromYaml.match(handler)[1] }&.to_s
       end
 
       def priority
@@ -118,32 +114,24 @@ module Delayed
       end
 
       def reschedule_at
-        if payload_object.respond_to?(:reschedule_at)
-          payload_object.reschedule_at(self.class.db_time_now, attempts)
-        else
+        payload_method(:reschedule_at, self.class.db_time_now, attempts) do
           self.class.db_time_now + (attempts**4) + 5
         end
       end
 
       def max_attempts
-        payload_object.max_attempts if payload_object.respond_to?(:max_attempts)
+        payload_method(:max_attempts) { Delayed::Worker.max_attempts }
       end
 
       def max_run_time
-        return unless payload_object.respond_to?(:max_run_time)
-        return unless (run_time = payload_object.max_run_time)
-
-        if run_time > Delayed::Worker.max_run_time
-          Delayed::Worker.max_run_time
-        else
-          run_time
-        end
+        [
+          payload_method(:max_run_time) { Delayed::Worker.max_run_time },
+          Delayed::Worker.max_run_time,
+        ].min
       end
 
       def destroy_failed_jobs?
-        payload_object.respond_to?(:destroy_failed_jobs?) ? payload_object.destroy_failed_jobs? : Delayed::Worker.destroy_failed_jobs
-      rescue DeserializationError
-        Delayed::Worker.destroy_failed_jobs
+        payload_method(:destroy_failed_jobs?) { Delayed::Worker.destroy_failed_jobs }
       end
 
       def fail!
@@ -160,6 +148,18 @@ module Delayed
       # Call during reload operation to clear out internal state
       def reset
         @payload_object = nil
+      end
+
+      private
+
+      def payload_method(name, *args, **kwargs)
+        if payload_object.respond_to?(name)
+          payload_object.public_send(name, *args, **kwargs)
+        elsif block_given?
+          yield
+        end
+      rescue DeserializationError, AdapterDeserializationError
+        yield if block_given?
       end
     end
   end
