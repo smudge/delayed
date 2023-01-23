@@ -64,6 +64,8 @@ module Delayed
 
     def job
       @job ||= ActiveJob::Base.deserialize(job_data) if job_data
+    rescue NameError => e
+      raise AdapterDeserializationError, "ActiveJob failed to deserialize: #{e}"
     end
   end
 end
