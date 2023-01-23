@@ -42,6 +42,16 @@ describe Delayed::Job do
       expect(described_class.find(job.id).run_at).to be_within(1).of(later)
     end
 
+    it 'raises a configuration error when given the wrong JobWrapper class' do
+      job = ActiveJob::QueueAdapters::DelayedJobAdapter::JobWrapper.new(ActiveJobJob.new)
+      expect { described_class.enqueue(job) }.to raise_error(Delayed::ConfigurationError, /:delayed adapter/)
+    end
+
+    it 'raises a configuration error when given an ActiveJob class directly' do
+      job = ActiveJobJob.new
+      expect { described_class.enqueue(job) }.to raise_error(Delayed::ConfigurationError, /ActiveJobJob.perform_later/)
+    end
+
     context 'with a hash' do
       it "raises ArgumentError when handler doesn't respond_to :perform" do
         expect { described_class.enqueue(payload_object: Object.new) }.to raise_error(ArgumentError)
@@ -258,7 +268,7 @@ describe Delayed::Job do
     end
 
     it 'is the class name of the performable job if it is an ActiveJob' do
-      job_wrapper = ActiveJob::QueueAdapters::DelayedJobAdapter::JobWrapper.new(ActiveJobJob.new.serialize)
+      job_wrapper = Delayed::JobWrapper.new(ActiveJobJob.new.serialize)
       expect(described_class.create(payload_object: job_wrapper).name).to eq('ActiveJobJob')
     end
 

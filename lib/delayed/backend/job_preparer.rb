@@ -10,6 +10,10 @@ module Delayed
 
       def prepare
         set_payload
+        if defined?(ActiveJob)
+          detect_unwrapped_active_job!
+          handle_legacy_active_job_adapter!
+        end
         set_queue_name
         set_priority
         handle_deprecation
@@ -20,6 +24,23 @@ module Delayed
 
       def set_payload
         options[:payload_object] ||= args.shift
+      end
+
+      def detect_unwrapped_active_job!
+        raise(ConfigurationError, <<~MSG) if options[:payload_object].is_a?(ActiveJob::Base)
+          ActiveJob classes cannot be enqueued directly!
+
+          Please call #{options[:payload_object].class}.perform_later(...), or read more here:
+          https://guides.rubyonrails.org/active_job_basics.html
+        MSG
+      end
+
+      def handle_legacy_active_job_adapter!
+        raise(ConfigurationError, <<~MSG) if options[:payload_object].is_a?(ActiveJob::QueueAdapters::DelayedJobAdapter::JobWrapper)
+          Incompatible ActiveJob configuration detected!
+
+          Please configure ActiveJob to use :delayed adapter.
+        MSG
       end
 
       def set_queue_name
