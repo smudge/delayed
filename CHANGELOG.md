@@ -11,6 +11,25 @@ and this project aims to adhere to [Semantic Versioning](http://semver.org/spec/
 ### Removed <!-- for now removed features. -->
 ### Fixed <!-- for any bug fixes. -->
 
+## [0.6.0] - 2023-01-24
+### Fixed
+- Ensured that job methods like `max_attempts` won't cause job cleanup (e.g.
+  `reschedule`) to fail if ActiveJob's internal deserialization fails.
+### Added
+- Added a check that will prevent `ActiveJob::Base` classes from being directly
+  enqueued by `Delayed::Job.enqueue`. (The `JobClass.perform_later` API must be
+  used instead.)
+- Added a check that will raise an exception if a job's configured
+  `max_run_time` is greater than the global `Delayed::Worker.max_run_time`
+  config. Previously, the minimum of the two values would be used, resulting in
+  a job timing out sooner than an implementing dev might've wanted it to.
+  (Unfortunately, jobs cannot currently have their runtime extended past the
+  global default, because their `locked_at` column will expire and another
+  worker will pick them up, resulting in duplicative work.)
+### Removed
+- `max_attempts(job)` and `max_run_time(job)` helper methods have been removed
+  from the `Delayed::Worker` public API.
+
 ## [0.5.0] - 2023-01-20
 ### Changed
 - Reduced handler size by excluding redundant 'job:' key (only 'job_data:' is
@@ -60,6 +79,7 @@ and this project aims to adhere to [Semantic Versioning](http://semver.org/spec/
   ancestor repos (`delayed_job` and `delayed_job_active_record`), plus the changes from Betterment's
   internal forks.
 
+[0.6.0]: https://github.com/betterment/delayed/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/betterment/delayed/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/betterment/delayed/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/betterment/delayed/compare/v0.2.0...v0.3.0
