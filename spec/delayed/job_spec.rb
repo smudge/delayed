@@ -447,7 +447,7 @@ describe Delayed::Job do
 
     it 'job set max_run_time can not exceed default max run time' do
       expect(@job.payload_object).to receive(:max_run_time).and_return(20.minutes + 60)
-      expect(@job.max_run_time).to eq(20.minutes)
+      expect { @job.max_run_time }.to raise_error(Delayed::ConfigurationError, /max_run_time/)
     end
   end
 

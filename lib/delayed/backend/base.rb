@@ -124,10 +124,9 @@ module Delayed
       end
 
       def max_run_time
-        [
-          payload_method(:max_run_time) { Delayed::Worker.max_run_time },
-          Delayed::Worker.max_run_time,
-        ].min
+        payload_method(:max_run_time) { Delayed::Worker.max_run_time }.tap do |m_run_time|
+          raise ConfigurationError, "Job max_run_time cannot exceed Worker max_run_time" if m_run_time > Delayed::Worker.max_run_time
+        end
       end
 
       def destroy_failed_jobs?
