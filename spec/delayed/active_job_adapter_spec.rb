@@ -44,6 +44,9 @@ RSpec.describe Delayed::ActiveJobAdapter do
         ("  timezone: \n" if ActiveJob::VERSION::MAJOR >= 6),
         ("  enqueued_at: '2023-01-20T18:52:29Z'\n" if ActiveJob::VERSION::MAJOR >= 6),
       ].compact
+
+      expect { Delayed::Worker.new.work_off }
+        .to change { Delayed::Job.count }.from(1).to(0)
     end
   end
 
@@ -51,9 +54,21 @@ RSpec.describe Delayed::ActiveJobAdapter do
     JobClass.perform_later
 
     Delayed::Job.last.tap do |dj|
-      dj.handler = dj.handler.gsub('JobClass', 'MissingJobClass')
+      dj.update!(handler: dj.handler.gsub('JobClass', 'MissingJobClass'))
       expect { dj.payload_object }.not_to raise_error
-      expect { dj.payload_object.job_id }.to raise_error(NameError, 'uninitialized constant MissingJobClass')
+      expect { dj.payload_object.job_id }
+        .to raise_error(Delayed::AdapterDeserializationError, 'ActiveJob failed to deserialize: uninitialized constant MissingJobClass')
+      expect { Delayed::Worker.new.send(:run_job, dj) }
+        .to not_raise_error
+        .and change { Delayed::Job.last.attempts }.from(0).to(1)
+    end
+  end
+
+  describe '#display_name' do
+    it 'returns the name of the class' do
+      JobClass.perform_later
+
+      expect(Delayed::Job.last.payload_object.display_name).to eq('JobClass')
     end
   end
 

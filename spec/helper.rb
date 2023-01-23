@@ -149,6 +149,7 @@ else
   ActiveSupport::Dependencies.autoload_paths << File.dirname(__FILE__)
 end
 
+RSpec::Matchers.define_negated_matcher :not_raise_error, :raise_error
 RSpec::Matchers.define :emit_notification do |expected_event_name|
   attr_reader :actual, :expected
 
