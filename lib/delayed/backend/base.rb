@@ -157,7 +157,7 @@ module Delayed
         elsif block_given?
           yield
         end
-      rescue DeserializationError, AdapterDeserializationError
+      rescue DeserializationError, AdapterError
         yield if block_given?
       end
     end

@@ -57,7 +57,7 @@ RSpec.describe Delayed::ActiveJobAdapter do
       dj.update!(handler: dj.handler.gsub('JobClass', 'MissingJobClass'))
       expect { dj.payload_object }.not_to raise_error
       expect { dj.payload_object.job_id }
-        .to raise_error(Delayed::AdapterDeserializationError, 'ActiveJob failed to deserialize: uninitialized constant MissingJobClass')
+        .to raise_error(Delayed::AdapterError, 'ActiveJob failed to deserialize: uninitialized constant MissingJobClass')
       expect { Delayed::Worker.new.send(:run_job, dj) }
         .to not_raise_error
         .and change { Delayed::Job.last.attempts }.from(0).to(1)
