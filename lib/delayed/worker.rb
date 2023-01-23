@@ -134,7 +134,7 @@ module Delayed
       }
       job_say job, metadata.to_json
       run_time = Benchmark.realtime do
-        Timeout.timeout(max_run_time(job).to_i, WorkerTimeout) do
+        Timeout.timeout(job.max_run_time.to_i, WorkerTimeout) do
           job.invoke_job
         end
         job.destroy
@@ -154,7 +154,7 @@ module Delayed
     # Reschedule the job in the future (when a job fails).
     # Uses an exponential scale depending on the number of failed attempts.
     def reschedule(job, time = nil)
-      if (job.attempts += 1) < max_attempts(job)
+      if (job.attempts += 1) < job.max_attempts
         time ||= job.reschedule_at
         job.run_at = time
         job.unlock
@@ -184,14 +184,6 @@ module Delayed
     def say(text, level = Delayed.default_log_level)
       text = "[Worker(#{name})] #{text}"
       Delayed.say("#{Time.now.strftime('%FT%T%z')}: #{text}", level)
-    end
-
-    def max_attempts(job)
-      job.max_attempts || self.class.max_attempts
-    end
-
-    def max_run_time(job)
-      job.max_run_time || self.class.max_run_time
     end
 
     protected

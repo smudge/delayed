@@ -418,8 +418,8 @@ describe Delayed::Job do
       @job = described_class.enqueue SimpleJob.new
     end
 
-    it 'is not defined' do
-      expect(@job.max_attempts).to be_nil
+    it 'results in a default max attempts when not defined' do
+      expect(@job.max_attempts).to eq(25)
     end
 
     it 'uses the max_attempts value on the payload when defined' do
@@ -431,12 +431,8 @@ describe Delayed::Job do
   describe '#max_run_time' do
     before(:each) { @job = described_class.enqueue SimpleJob.new }
 
-    it 'is not defined' do
-      expect(@job.max_run_time).to be_nil
-    end
-
     it 'results in a default run time when not defined' do
-      expect(worker.max_run_time(@job)).to eq(20.minutes)
+      expect(@job.max_run_time).to eq(20.minutes)
     end
 
     it 'uses the max_run_time value on the payload when defined' do
@@ -446,12 +442,12 @@ describe Delayed::Job do
 
     it 'results in an overridden run time when defined' do
       expect(@job.payload_object).to receive(:max_run_time).and_return(15.minutes)
-      expect(worker.max_run_time(@job)).to eq(15.minutes)
+      expect(@job.max_run_time).to eq(15.minutes)
     end
 
     it 'job set max_run_time can not exceed default max run time' do
       expect(@job.payload_object).to receive(:max_run_time).and_return(20.minutes + 60)
-      expect(worker.max_run_time(@job)).to eq(20.minutes)
+      expect(@job.max_run_time).to eq(20.minutes)
     end
   end
 
