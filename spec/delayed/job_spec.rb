@@ -14,6 +14,7 @@ describe Delayed::Job do
     Delayed::Worker.default_priority = 99
     Delayed::Worker.delay_jobs = true
     Delayed::Worker.default_queue_name = 'default_tracking'
+    ActiveJobJob.runs = 0
     SimpleJob.runs = 0
     described_class.delete_all
   end
@@ -547,6 +548,31 @@ describe Delayed::Job do
           worker.work_off
           job.reload
           expect(job).to be_failed
+        end
+      end
+
+      context 'when the job accepts args' do
+        it 'works off the job' do
+          described_class.enqueue(JobWithArgs.new('arg', kwarg: 'kwarg'))
+          worker.work_off
+          expect(JobWithArgs.runs).to eq(1)
+        end
+      end
+
+      context 'when the job is an ActiveJob job' do
+        it 'works off the job' do
+          described_class.enqueue ActiveJob::QueueAdapters::DelayedJobAdapter::JobWrapper.new(ActiveJobJob.new.serialize)
+          worker.work_off
+          expect(ActiveJobJob.runs).to eq(1)
+        end
+      end
+
+      context 'when the job is an ActiveJob job that accepts args' do
+        it 'works off the job' do
+          aj = ActiveJobJobWithArgs.new('arg', kwarg: 'kwarg')
+          described_class.enqueue ActiveJob::QueueAdapters::DelayedJobAdapter::JobWrapper.new(aj.serialize)
+          worker.work_off
+          expect(ActiveJobJobWithArgs.runs).to eq(1)
         end
       end
     end

@@ -113,5 +113,25 @@ class EnqueueJobMod < SimpleJob
 end
 
 class ActiveJobJob < ActiveJob::Base # rubocop:disable Rails/ApplicationJob
-  def perform; end
+  cattr_accessor(:runs) { 0 }
+
+  def perform
+    self.class.runs += 1
+  end
+end
+
+class JobWithArgs < SimpleJob
+  def initialize(arg, kwarg:)
+    @arg = arg
+    @kwarg = kwarg
+    super()
+  end
+end
+
+class ActiveJobJobWithArgs < ActiveJobJob
+  def perform(arg, kwarg:)
+    @arg = arg
+    @kwarg = kwarg
+    super()
+  end
 end

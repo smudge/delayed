@@ -1,11 +1,11 @@
 require 'helper'
 
 RSpec.describe Delayed::Plugins::Instrumentation do
-  let!(:job) { Delayed::Job.enqueue SimpleJob.new, priority: 13, queue: 'test' }
+  let!(:job) { Delayed::Job.enqueue JobWithArgs.new('arg', kwarg: 'kwarg'), priority: 13, queue: 'test' }
 
   it 'emits delayed.job.run' do
     expect { Delayed::Worker.new.work_off }.to emit_notification('delayed.job.run').with_payload(
-      job_name: 'SimpleJob',
+      job_name: 'JobWithArgs',
       priority: 13,
       queue: 'test',
       table: 'delayed_jobs',
@@ -13,6 +13,32 @@ RSpec.describe Delayed::Plugins::Instrumentation do
       database_adapter: current_adapter,
       job: job,
     )
+  end
+
+  context 'with a second (activejob) job' do
+    let(:aj) { ActiveJobJobWithArgs.new('arg', kwarg: 'kwarg').serialize }
+    let(:aj_wrapper) { ActiveJob::QueueAdapters::DelayedJobAdapter::JobWrapper.new(aj) }
+    let!(:active_job_job) { Delayed::Job.enqueue aj_wrapper }
+
+    it 'emits delayed.job.run twice' do
+      expect { Delayed::Worker.new.work_off }.to emit_notification('delayed.job.run').with_payload(
+        job_name: 'JobWithArgs',
+        priority: 13,
+        queue: 'test',
+        table: 'delayed_jobs',
+        database: current_database,
+        database_adapter: current_adapter,
+        job: job,
+      ).and emit_notification('delayed.job.run').with_payload(
+        job_name: 'ActiveJobJobWithArgs',
+        priority: 10,
+        queue: 'default',
+        table: 'delayed_jobs',
+        database: current_database,
+        database_adapter: current_adapter,
+        job: active_job_job,
+      )
+    end
   end
 
   context 'when the job errors' do
