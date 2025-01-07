@@ -61,7 +61,7 @@ describe Delayed::Worker do
     it 'logs the count and sleeps only within the loop' do
       subject.run!
       expect(Delayed.logger).to have_received(:info).with(/1 jobs processed/)
-      expect(subject).to have_received(:interruptable_sleep).once.with(a_value_within(1).of(TEST_MIN_RESERVE_INTERVAL))
+      expect(subject).to have_received(:interruptable_sleep).twice.with(a_value_within(1).of(1 - TEST_MAX_RESERVE_DUTY_CYCLE))
       expect(subject).not_to have_received(:interruptable_sleep).with(TEST_SLEEP_DELAY)
     end
 
@@ -71,6 +71,7 @@ describe Delayed::Worker do
       it 'does not log and then sleeps only outside of the loop' do
         subject.run!
         expect(Delayed.logger).not_to have_received(:info)
+        expect(subject).to have_received(:interruptable_sleep).once.with(a_value_within(1).of(1 - TEST_MAX_RESERVE_DUTY_CYCLE))
         expect(subject).to have_received(:interruptable_sleep).with(TEST_SLEEP_DELAY)
       end
     end
@@ -82,7 +83,7 @@ describe Delayed::Worker do
       it 'logs the count and sleeps only in the loop' do
         subject.run!
         expect(Delayed.logger).to have_received(:info).with(/3 jobs processed/)
-        expect(subject).to have_received(:interruptable_sleep).once.with(a_value_within(1).of(TEST_MIN_RESERVE_INTERVAL))
+        expect(subject).to have_received(:interruptable_sleep).twice.with(a_value_within(1).of(1 - TEST_MAX_RESERVE_DUTY_CYCLE))
         expect(subject).not_to have_received(:interruptable_sleep).with(TEST_SLEEP_DELAY)
       end
     end
@@ -94,7 +95,7 @@ describe Delayed::Worker do
       it 'logs the count and sleeps both in the loop and outside of the loop' do
         subject.run!
         expect(Delayed.logger).to have_received(:info).with(/2 jobs processed/)
-        expect(subject).to have_received(:interruptable_sleep).once.with(a_value_within(1).of(TEST_MIN_RESERVE_INTERVAL))
+        expect(subject).to have_received(:interruptable_sleep).twice.with(a_value_within(1).of(1 - TEST_MAX_RESERVE_DUTY_CYCLE))
         expect(subject).to have_received(:interruptable_sleep).once.with(TEST_SLEEP_DELAY)
       end
     end

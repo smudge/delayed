@@ -113,7 +113,7 @@ end
 
 # Negative values are treated as sleep(0),
 # so we can use different values to test the sleep behavior:
-TEST_MIN_RESERVE_INTERVAL = -10
+TEST_MAX_RESERVE_DUTY_CYCLE = 1
 TEST_SLEEP_DELAY = -100
 
 RSpec.configure do |config|
@@ -132,11 +132,11 @@ RSpec.configure do |config|
     queues_was = Delayed::Worker.queues
     read_ahead_was = Delayed::Worker.read_ahead
     sleep_delay_was = Delayed::Worker.sleep_delay
-    min_reserve_interval_was = Delayed::Worker.min_reserve_interval
+    max_reserve_duty_cycle_was = Delayed::Worker.max_reserve_duty_cycle
     plugins_was = Delayed.plugins.dup
 
     Delayed::Worker.sleep_delay = TEST_SLEEP_DELAY
-    Delayed::Worker.min_reserve_interval = TEST_MIN_RESERVE_INTERVAL
+    Delayed::Worker.max_reserve_duty_cycle = TEST_MAX_RESERVE_DUTY_CYCLE
 
     example.run
   ensure
@@ -154,7 +154,7 @@ RSpec.configure do |config|
     Delayed::Worker.queues = queues_was
     Delayed::Worker.read_ahead = read_ahead_was
     Delayed::Worker.sleep_delay = sleep_delay_was
-    Delayed::Worker.min_reserve_interval = min_reserve_interval_was
+    Delayed::Worker.max_reserve_duty_cycle = max_reserve_duty_cycle_was
     Delayed.plugins = plugins_was
 
     Delayed::Job.delete_all

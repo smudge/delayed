@@ -12,7 +12,7 @@ module Delayed
     include Runnable
 
     cattr_accessor :sleep_delay, instance_writer: false, default: 5
-    cattr_accessor :min_reserve_interval, instance_writer: false, default: 0
+    cattr_accessor :max_reserve_duty_cycle, instance_writer: false, default: 0.9
     cattr_accessor :max_attempts, instance_writer: false, default: 25
     cattr_accessor :max_claims, instance_writer: false, default: 5
     cattr_accessor :max_run_time, instance_writer: false, default: 20.minutes
@@ -93,8 +93,9 @@ module Delayed
       total = 0
 
       while total < num
-        start = clock_time
+        reserve_start = clock_time
         jobs = reserve_jobs
+        reserve_end = clock_time
         break if jobs.empty?
 
         total += jobs.length
@@ -118,8 +119,10 @@ module Delayed
 
         break if stop? # leave if we're exiting
 
-        elapsed = clock_time - start
-        interruptable_sleep(self.class.min_reserve_interval - elapsed)
+        reserve_duration = reserve_end - reserve_start
+        min_reserve_interval = reserve_duration * (1 - max_reserve_duty_cycle)
+        time_since_reserve = clock_time - reserve_end
+        interruptable_sleep(min_reserve_interval - time_since_reserve)
       end
 
       [success.value, total - success.value]

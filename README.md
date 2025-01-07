@@ -433,9 +433,12 @@ Delayed::Worker.read_ahead = 5
 # If a worker finds no jobs, it will sleep this number of seconds in between attempts:
 Delayed::Worker.sleep_delay = 5
 
-# Until version 1.0, the worker will not sleep at all between attemps if it finds jobs.
-# This can be configured by setting the minimum reserve interval:
-Delayed::Worker.min_reserve_interval = 0.5 # seconds
+# Until v1.0, the worker will not sleep at all between attempts if it finds jobs.
+# In v1.0 and beyond, there will be a default "duty cycle" that the worker will adhere to.
+# 
+# To preview this behavior, you may specify a `max_reserve_duty_cycle` value between 0 and 1.
+# A duty cycle of 0.8 will cause the worker to spend no more than 80% of its time reserving jobs:
+Delayed::Worker.max_reserve_duty_cycle = 0.8
 ```
 
 If a job fails, it will be rerun up to 25 times (with an exponential back-off). Jobs will also
