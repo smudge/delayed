@@ -1,8 +1,9 @@
 require 'helper'
 
+# rubocop:disable RSpec/SubjectStub
 RSpec.describe Delayed::Monitor do
   before do
-    described_class.sleep_delay = 0
+    allow(subject).to receive(:interruptable_sleep).and_call_original
   end
 
   let(:default_payload) do
@@ -12,6 +13,19 @@ RSpec.describe Delayed::Monitor do
       database_adapter: current_adapter,
       queue: 'default',
     }
+  end
+
+  it 'applies a duty cycle sleep before the second run' do
+    subject.run!
+    subject.run!
+    expect(subject).to have_received(:interruptable_sleep).once.with(a_value_within(1).of(1 - TEST_MAX_DUTY_CYCLE))
+  end
+
+  it 'sleeps for at least the desired interval before the second run' do
+    described_class.max_duty_cycle = Float::INFINITY # ensure duty cycle sleep would be smaller than min interval
+    subject.run!
+    subject.run!
+    expect(subject).to have_received(:interruptable_sleep).once.with(a_value_within(1).of(TEST_MONITOR_MIN_INTERVAL))
   end
 
   it 'emits empty metrics for all default priorities' do

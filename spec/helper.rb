@@ -113,8 +113,9 @@ end
 
 # Negative values are treated as sleep(0),
 # so we can use different values to test the sleep behavior:
-TEST_MAX_RESERVE_DUTY_CYCLE = 1
-TEST_SLEEP_DELAY = -100
+TEST_MAX_DUTY_CYCLE = 1
+TEST_SLEEP_DELAY = -99
+TEST_MONITOR_MIN_INTERVAL = -33
 
 RSpec.configure do |config|
   config.around(:each) do |example|
@@ -133,10 +134,14 @@ RSpec.configure do |config|
     read_ahead_was = Delayed::Worker.read_ahead
     sleep_delay_was = Delayed::Worker.sleep_delay
     max_reserve_duty_cycle_was = Delayed::Worker.max_reserve_duty_cycle
+    monitor_max_duty_cycle_was = Delayed::Monitor.max_duty_cycle
+    monitor_min_interval_was = Delayed::Monitor.min_interval
     plugins_was = Delayed.plugins.dup
 
     Delayed::Worker.sleep_delay = TEST_SLEEP_DELAY
-    Delayed::Worker.max_reserve_duty_cycle = TEST_MAX_RESERVE_DUTY_CYCLE
+    Delayed::Worker.max_reserve_duty_cycle = TEST_MAX_DUTY_CYCLE
+    Delayed::Monitor.max_duty_cycle = TEST_MAX_DUTY_CYCLE
+    Delayed::Monitor.min_interval = TEST_MONITOR_MIN_INTERVAL
 
     example.run
   ensure
@@ -155,6 +160,8 @@ RSpec.configure do |config|
     Delayed::Worker.read_ahead = read_ahead_was
     Delayed::Worker.sleep_delay = sleep_delay_was
     Delayed::Worker.max_reserve_duty_cycle = max_reserve_duty_cycle_was
+    Delayed::Monitor.max_duty_cycle = monitor_max_duty_cycle_was
+    Delayed::Monitor.min_interval = monitor_min_interval_was
     Delayed.plugins = plugins_was
 
     Delayed::Job.delete_all

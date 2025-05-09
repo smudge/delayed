@@ -42,5 +42,24 @@ module Delayed
     def pipe
       @pipe ||= IO.pipe
     end
+
+    def duty_cycle(max_duty_cycle, at_least: 0)
+      work_start = clock_time
+
+      if instance_variable_defined?(:@dc_work_duration)
+        min_work_interval = @dc_work_duration * (1 - max_duty_cycle)
+        time_since_last_work = work_start - @dc_work_end
+        interruptable_sleep([min_work_interval - time_since_last_work, at_least].max)
+      end
+
+      yield.tap do
+        @dc_work_end = clock_time
+        @dc_work_duration = @dc_work_end - work_start
+      end
+    end
+
+    def clock_time
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
   end
 end

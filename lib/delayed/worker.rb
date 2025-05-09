@@ -93,9 +93,8 @@ module Delayed
       total = 0
 
       while total < num
-        reserve_start = clock_time
-        jobs = reserve_jobs
-        reserve_end = clock_time
+        jobs = duty_cycle(max_reserve_duty_cycle) { reserve_jobs }
+
         break if jobs.empty?
 
         total += jobs.length
@@ -118,11 +117,6 @@ module Delayed
         pool.wait_for_termination
 
         break if stop? # leave if we're exiting
-
-        reserve_duration = reserve_end - reserve_start
-        min_reserve_interval = reserve_duration * (1 - max_reserve_duty_cycle)
-        time_since_reserve = clock_time - reserve_end
-        interruptable_sleep(min_reserve_interval - time_since_reserve)
       end
 
       [success.value, total - success.value]
@@ -242,10 +236,6 @@ module Delayed
 
     def reload!
       Rails.application.reloader.reload! if defined?(Rails.application.reloader) && Rails.application.reloader.check!
-    end
-
-    def clock_time
-      Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
   end
 end

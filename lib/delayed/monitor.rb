@@ -15,7 +15,8 @@ module Delayed
       alert_age_percent
     ).freeze
 
-    cattr_accessor :sleep_delay, instance_writer: false, default: 60
+    cattr_accessor :min_interval, instance_writer: false, default: 60
+    cattr_accessor :max_duty_cycle, instance_writer: false, default: 0.1
 
     def initialize
       @jobs = Job.group(priority_case_statement).group(:queue)
@@ -23,10 +24,11 @@ module Delayed
     end
 
     def run!
-      ActiveSupport::Notifications.instrument('delayed.monitor.run', default_tags) do
-        METRICS.each { |metric| emit_metric!(metric) }
+      duty_cycle(max_duty_cycle, at_least: min_interval) do
+        ActiveSupport::Notifications.instrument('delayed.monitor.run', default_tags) do
+          METRICS.each { |metric| emit_metric!(metric) }
+        end
       end
-      interruptable_sleep(sleep_delay)
     end
 
     private
