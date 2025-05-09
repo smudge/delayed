@@ -373,6 +373,16 @@ QUEUE=tracking rake delayed:monitor
 QUEUES=mailers,tasks rake delayed:monitor
 ```
 
+The monitor can also be configured in an initializer:
+
+```ruby
+# The minimum interval between monitor attempts:
+Delayed::Worker.min_interval = 60 # seconds (default)
+
+# The max ratio of time ("duty cycle") a monitor may spend querying and emitting metrics:
+Delayed::Monitor.max_duty_cycle = 0.2 # no more than 20% (default)
+```
+
 The following events will be emitted, grouped by priority name (e.g. "interactive") and queue name,
 and the metric's "`:value`" will be available in the event's payload.  **This means that there will
 be one value _per_ unique combination of queue & priority**, and totals must be computed via
@@ -418,27 +428,17 @@ end
 ## Configuration
 
 `Delayed` is highly configurable, but ships with opinionated defaults.  If you need to change any
-default behaviors, you can do so in an initializer (e.g. `config/initializers/delayed.rb`).
-
-By default, workers will claim 5 jobs at a time (run in concurrent threads). If no jobs are found,
-workers will sleep for 5 seconds.
+default behaviors, you can do so in an initializer (e.g. `config/initializers/delayed.rb`):
 
 ```ruby
-# The max number of jobs a worker may lock at a time (also the size of the thread pool):
-Delayed::Worker.max_claims = 5
+# The max number of jobs a worker may claim at a time (also the size of the thread pool):
+Delayed::Worker.max_claims = 5 # default
 
-# The number of jobs to which a worker may "read ahead" when locking jobs (mysql only!):
-Delayed::Worker.read_ahead = 5
+# The max ratio of time ("duty cycle") a worker may spend reserving jobs:
+Delayed::Worker.max_reserve_duty_cycle = 0.8 # no more than 80% (default)
 
-# If a worker finds no jobs, it will sleep this number of seconds in between attempts:
+# Additional time to wait when the queue is empty (or becomes emptied):
 Delayed::Worker.sleep_delay = 5
-
-# Until v1.0, the worker will not sleep at all between attempts if it finds jobs.
-# In v1.0 and beyond, there will be a default "duty cycle" that the worker will adhere to.
-# 
-# To preview this behavior, you may specify a `max_reserve_duty_cycle` value between 0 and 1.
-# A duty cycle of 0.8 will cause the worker to spend no more than 80% of its time reserving jobs:
-Delayed::Worker.max_reserve_duty_cycle = 0.8
 ```
 
 If a job fails, it will be rerun up to 25 times (with an exponential back-off). Jobs will also

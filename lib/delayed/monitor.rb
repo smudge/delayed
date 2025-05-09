@@ -16,7 +16,7 @@ module Delayed
     ).freeze
 
     cattr_accessor :min_interval, instance_writer: false, default: 60
-    cattr_accessor :max_duty_cycle, instance_writer: false, default: 0.1
+    cattr_accessor :max_duty_cycle, instance_writer: false, default: 0.2
 
     def initialize
       @jobs = Job.group(priority_case_statement).group(:queue)
