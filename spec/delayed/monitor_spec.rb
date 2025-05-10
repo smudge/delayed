@@ -288,3 +288,4 @@ RSpec.describe Delayed::Monitor do
     end
   end
 end
+# rubocop:enable RSpec/SubjectStub
