@@ -373,16 +373,6 @@ QUEUE=tracking rake delayed:monitor
 QUEUES=mailers,tasks rake delayed:monitor
 ```
 
-The monitor can also be configured in an initializer:
-
-```ruby
-# The minimum interval between monitor attempts:
-Delayed::Worker.min_interval = 60 # seconds (default)
-
-# The max ratio of time ("duty cycle") a monitor may spend querying and emitting metrics:
-Delayed::Monitor.max_duty_cycle = 0.2 # no more than 20% (default)
-```
-
 The following events will be emitted, grouped by priority name (e.g. "interactive") and queue name,
 and the metric's "`:value`" will be available in the event's payload.  **This means that there will
 be one value _per_ unique combination of queue & priority**, and totals must be computed via
@@ -515,6 +505,16 @@ Delayed.logger = Rails.logger
 
 # Specify a default log level for all job lifecycle logging:
 Delayed.default_log_level = 'info'
+```
+
+The monitor process can also be configured via an initializer:
+
+```ruby
+# The minimum interval between monitor attempts:
+Delayed::Worker.min_interval = 60 # seconds (default)
+
+# The max ratio of time ("duty cycle") a monitor may spend querying and emitting metrics:
+Delayed::Monitor.max_duty_cycle = 0.2 # no more than 20% (default)
 ```
 
 ## Migrating from other ActiveJob backends
