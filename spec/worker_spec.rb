@@ -106,6 +106,22 @@ describe Delayed::Worker do
         expect(subject).to have_received(:interruptable_sleep).once.with(TEST_SLEEP_DELAY)
       end
     end
+
+    context 'when the pickup query fails' do
+      before do
+        allow(Delayed::Job).to receive(:reserve).and_raise('Query failed')
+      end
+
+      it 'logs the failure and applies the duty cycle sleep on the next attempt' do
+        subject.run!
+        expect(Delayed.logger).to have_received(:info).with(/Error while reserving job\(s\): Query failed/)
+        expect(subject).not_to have_received(:interruptable_sleep).with(a_value_within(1).of(1 - TEST_MAX_DUTY_CYCLE))
+        expect(subject).to have_received(:interruptable_sleep).with(TEST_SLEEP_DELAY)
+
+        subject.run!
+        expect(subject).to have_received(:interruptable_sleep).once.with(a_value_within(1).of(1 - TEST_MAX_DUTY_CYCLE))
+      end
+    end
   end
   # rubocop:enable RSpec/SubjectStub
 

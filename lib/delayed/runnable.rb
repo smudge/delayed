@@ -52,10 +52,10 @@ module Delayed
         interruptable_sleep([min_work_interval - time_since_last_work, at_least].max)
       end
 
-      yield.tap do
-        @dc_work_end = clock_time
-        @dc_work_duration = @dc_work_end - work_start
-      end
+      yield
+    ensure
+      @dc_work_end = clock_time
+      @dc_work_duration = @dc_work_end - work_start
     end
 
     def clock_time
