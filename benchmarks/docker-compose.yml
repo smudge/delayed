@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: benchmark
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d benchmark"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+    image: delayed-benchmark-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:password@db:5432/benchmark
+    working_dir: /app
+    volumes:
+      - type: bind
+        source: ./app
+        target: /app
+      - bundle_cache:/bundle
+
+  worker:
+    image: delayed-benchmark-app
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      role: benchmark_worker
+    environment:
+      DATABASE_URL: postgres://postgres:password@db:5432/benchmark
+    command: bundle exec rake benchmark:run_worker
+    working_dir: /app
+    volumes:
+      - type: bind
+        source: ./app
+        target: /app
+      - bundle_cache:/bundle
+
+volumes:
+  bundle_cache:

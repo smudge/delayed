@@ -1,0 +1,9 @@
+require 'bundler/setup'
+
+require_relative "config/application"
+Rails.application.initialize!
+
+task :environment
+
+# Load all task files in tasks/
+Dir.glob("tasks/**/*.rake").each { |f| load f }

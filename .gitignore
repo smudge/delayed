@@ -5,5 +5,9 @@
 .rvmrc
 /coverage
 gemfiles/*.lock
+benchmarks/**/*.lock
+benchmarks/app/log
+benchmarks/app/tmp
+benchmarks/app/results
 pkg/*
 *.sqlite
