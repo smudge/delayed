@@ -8,6 +8,7 @@ namespace :benchmark do
     args[:count].to_i.times { job_class.perform_later }
 
     ActiveRecord::Base.connection.execute('SELECT pg_stat_statements_reset();')
+    ActiveRecord::Base.connection.execute('SELECT pg_stat_reset();')
   end
 
   desc "Run worker loop (for manual scaling)"
@@ -68,6 +69,19 @@ namespace :benchmark do
       pickup_mean_time_ms: row["mean_time"].to_f,
       pickup_rows: row["rows"].to_i,
       pickup_avg_rows_per_call: row["avg_rows_per_call"].to_f,
+    )
+
+    puts "\n\n-- General query stats (pg_stat_user_tables) --"
+    row = ActiveRecord::Base.connection.select_all(<<~SQL).first
+      SELECT seq_scan, idx_scan, n_tup_ins, n_tup_upd, n_tup_del
+      FROM pg_stat_user_tables
+      WHERE relname = 'delayed_jobs';
+    SQL
+    result.merge!(
+      delayed_seq_scan: row["seq_scan"].to_i,
+      delayed_idx_scan: row["idx_scan"].to_i,
+      delayed_rows_inserted: row["n_tup_ins"].to_i,
+      delayed_rows_deleted: row["n_tup_del"].to_i,
     )
 
     puts "\n\nRESULT:\n#{JSON.pretty_generate(result)}"
