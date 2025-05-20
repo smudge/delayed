@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
 CREATE TABLE delayed_jobs (
   id bigserial PRIMARY KEY,
   priority integer DEFAULT 0,
