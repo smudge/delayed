@@ -8,5 +8,4 @@ Rails.application.initialize!
 desc "The default environment"
 task :environment
 
-# Load all task files in tasks/
 Dir.glob("tasks/**/*.rake").each { |f| load f }

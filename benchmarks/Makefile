@@ -28,8 +28,8 @@ start-workers:
 
 stop-workers:
 	@echo "Stoping all worker containers..."
-	podman ps --filter label=role=benchmark_worker --format '{{.ID}}' | xargs -r podman stop
-	podman ps -a --filter label=role=benchmark_worker --format '{{.ID}}' | xargs -r podman rm
+	@podman ps --filter label=role=benchmark_worker --format '{{.ID}}' | xargs -r podman stop
+	@podman ps -a --filter label=role=benchmark_worker --format '{{.ID}}' | xargs -r podman rm
 
 enqueue:
 	podman-compose run --rm app bundle exec rake benchmark:enqueue[$(JOB),$(COUNT)]

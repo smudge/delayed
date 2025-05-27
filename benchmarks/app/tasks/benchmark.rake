@@ -25,15 +25,6 @@ namespace :benchmark do
 
     puts "Starting worker loop..."
     Delayed::Worker.new.start
-  ensure
-    if ENV["EXPLAIN_SAMPLER"] == "1"
-      puts "Writing EXPLAIN results..."
-      FileUtils.mkdir_p("results")
-      CSV.open("results/explain_samples-worker-#{Time.now.strftime('%Y%m%d-%H%M%S')}.csv", "w") do |csv|
-        csv << %w(timestamp rows_removed actual_rows buffers_read buffers_hit total_time)
-        Adapters::Delayed.explain_samples.each { |row| csv << row.values }
-      end
-    end
   end
 
   desc "Monitor job queue until drained, and write benchmark result"
