@@ -1,4 +1,6 @@
 require_relative "../config/application"
+require_relative "../lib/adapters/delayed"
+require_relative "../lib/benchmark_runner"
 
 namespace :benchmark do
   desc "Enqueue N jobs of a given type (e.g., fast, medium, slow)"
@@ -7,88 +9,46 @@ namespace :benchmark do
     puts "Enqueuing #{args[:count]} #{args[:type]} jobs..."
     args[:count].to_i.times { job_class.perform_later }
 
+    puts "Clearing pg_stat_* tables..."
     ActiveRecord::Base.connection.execute('SELECT pg_stat_statements_reset();')
     ActiveRecord::Base.connection.execute('SELECT pg_stat_reset();')
   end
 
   desc "Run worker loop (for manual scaling)"
   task :run_worker => :environment do
-    puts "Starting worker loop..."
-    Delayed::Worker.new.start
-  end
-
-  desc "Monitor and log benchmark results until queue is drained"
-  task :run, [:type, :workers] => :environment do |_, args|
-    type = args[:type] || "fast"
-    workers = (args[:workers] || "1").to_i
-
-    start = Time.now
-    initial = Delayed::Job.count
-
-    puts "Monitoring #{initial} #{type} jobs with #{workers} worker(s)..."
-
-    loop do
-      remaining = Delayed::Job.count
-      done = initial - remaining
-      elapsed = Time.now - start
-
-      print "\r#{done}/#{initial} done in #{elapsed.round(2)}s"
-      break if remaining == 0
-      sleep 1
+    if ENV["EXPLAIN_SAMPLER"] == "1"
+      puts "Starting EXPLAIN sampler..."
+      Adapters::Delayed.start_sampler!
     end
 
-    total = Time.now - start
+    puts "Starting worker loop..."
+    Delayed::Worker.new.start
+  ensure
+    if ENV["EXPLAIN_SAMPLER"] == "1"
+      puts "Writing EXPLAIN results..."
+      Dir.mkdir("results") unless Dir.exist?("results")
+      CSV.open("results/explain_samples-worker-#{Time.now.strftime('%Y%m%d-%H%M%S')}.csv", "w") do |csv|
+        csv << %w[timestamp rows_removed actual_rows buffers_read buffers_hit total_time]
+        Adapters::Delayed.explain_samples.each { |row| csv << row.values }
+      end
+    end
+  end
 
-    result = {
-      adapter: "delayed",
+  desc "Monitor job queue until drained, and write benchmark result"
+  task :monitor, [:type, :count, :workers] => :environment do |_, args|
+    type = args[:type] || "fast"
+    count = args[:count].to_i
+    workers = args[:workers].to_i
+
+    Benchmark::Runner.run_monitor(
+      total_jobs: count,
       job_type: type,
       workers: workers,
-      total_jobs: initial,
-      duration_seconds: total.round(2),
-      jobs_per_second: (initial / total).round(2)
-    }
-
-    puts "\n\n-- Worker contention stats (pg_stat_statements) --"
-    row = ActiveRecord::Base.connection.select_all(<<~SQL).first
-      SELECT
-        calls,
-        total_exec_time::numeric(10,2),
-        mean_exec_time::numeric(10,2),
-        rows,
-        (rows / NULLIF(calls, 0))::numeric(10,2) AS avg_rows_per_call
-      FROM pg_stat_statements
-      WHERE query LIKE '%FROM "delayed_jobs"%'
-        AND query LIKE '%FOR UPDATE%'
-      ORDER BY total_exec_time DESC
-      LIMIT 1;
-    SQL
-
-    result.merge!(
-      pickup_query_calls: row["calls"].to_i,
-      pickup_total_time_ms: row["total_time"].to_f,
-      pickup_mean_time_ms: row["mean_time"].to_f,
-      pickup_rows: row["rows"].to_i,
-      pickup_avg_rows_per_call: row["avg_rows_per_call"].to_f,
     )
+  end
 
-    puts "\n\n-- General query stats (pg_stat_user_tables) --"
-    row = ActiveRecord::Base.connection.select_all(<<~SQL).first
-      SELECT seq_scan, idx_scan, n_tup_ins, n_tup_upd, n_tup_del
-      FROM pg_stat_user_tables
-      WHERE relname = 'delayed_jobs';
-    SQL
-    result.merge!(
-      delayed_seq_scan: row["seq_scan"].to_i,
-      delayed_idx_scan: row["idx_scan"].to_i,
-      delayed_rows_inserted: row["n_tup_ins"].to_i,
-      delayed_rows_deleted: row["n_tup_del"].to_i,
-    )
-
-    puts "\n\nRESULT:\n#{JSON.pretty_generate(result)}"
-
-    Dir.mkdir("results") unless Dir.exist?("results")
-    filename = "results/#{Time.now.strftime("%Y%m%d-%H%M")}-#{result[:adapter]}-#{type}.json"
-    File.write(filename, JSON.dump(result))
-    puts "Saved to #{filename}"
+  desc "Process and report benchmark results"
+  task process: :environment do
+    Benchmark::Runner.process_results
   end
 end
