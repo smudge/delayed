@@ -1,8 +1,11 @@
+# frozen_string_literal: true
+
 require 'bundler/setup'
 
 require_relative "config/application"
 Rails.application.initialize!
 
+desc "The default environment"
 task :environment
 
 # Load all task files in tasks/

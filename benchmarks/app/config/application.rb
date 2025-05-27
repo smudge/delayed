@@ -6,7 +6,7 @@ require "active_record"
 require "active_record/railtie"
 require "delayed"
 
-ActiveRecord::Base.establish_connection(ENV["DATABASE_URL"])
+ActiveRecord::Base.establish_connection(ENV.fetch('DATABASE_URL'))
 
 class BenchmarkApp < Rails::Application
   config.load_defaults 7.1

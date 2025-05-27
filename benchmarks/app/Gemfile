@@ -1,6 +1,10 @@
+# frozen_string_literal: true
+
 source "https://rubygems.org"
 
-gem "rails", "~> 7.1"
-gem "pg"
-gem "delayed", github: 'betterment/delayed', ref: ENV.fetch("DELAYED_REF", "main")
 gem 'concurrent-ruby'
+gem "delayed", github: 'betterment/delayed', ref: ENV.fetch("DELAYED_REF", "main")
+gem "pg"
+gem "rails", "~> 7.1"
+
+gem 'betterlint'

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # lib/benchmark_runner.rb
 
 require "csv"
@@ -32,7 +34,7 @@ module Benchmark
         total_jobs: total_jobs,
         duration_seconds: duration.round(2),
         jobs_per_second: jobs_per_sec.round(2),
-        finished_at: Time.now.iso8601
+        finished_at: Time.now.iso8601,
       }
 
       puts "\n\n-- Worker contention stats (pg_stat_statements) --"
@@ -73,7 +75,7 @@ module Benchmark
 
       puts "\n\nRESULT:\n#{JSON.pretty_generate(result)}"
 
-      Dir.mkdir("results") unless Dir.exist?("results")
+      FileUtils.mkdir_p("results")
       File.write("results/benchmark_result.json", JSON.pretty_generate(result))
     end
 
@@ -104,4 +106,3 @@ module Benchmark
     end
   end
 end
-

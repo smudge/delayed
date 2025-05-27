@@ -1,0 +1,26 @@
+inherit_gem:
+  betterlint:
+    - config/default.yml
+
+inherit_mode:
+  merge:
+    - Exclude
+
+AllCops:
+  TargetRubyVersion: 2.6
+  NewCops: enable
+
+Betterment/ActiveJobPerformable:
+  Enabled: false
+Betterment/EnvironmentConfiguration:
+  Enabled: false
+Metrics/AbcSize:
+  Enabled: false
+Rails/ApplicationJob:
+  Enabled: false
+Rails/Output:
+  Enabled: false
+Rails/SquishedSQLHeredocs:
+  Enabled: false
+Rails/TimeZone:
+  Enabled: false

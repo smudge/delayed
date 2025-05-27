@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 require_relative "../config/application"
 require_relative "../lib/adapters/delayed"
 require_relative "../lib/benchmark_runner"
 
 namespace :benchmark do
   desc "Enqueue N jobs of a given type (e.g., fast, medium, slow)"
-  task :enqueue, [:type, :count] => :environment do |_, args|
+  task :enqueue, %i(type count) => :environment do |_, args|
     job_class = "#{args[:type].capitalize}Job".constantize
     puts "Enqueuing #{args[:count]} #{args[:type]} jobs..."
     args[:count].to_i.times { job_class.perform_later }
@@ -15,7 +17,7 @@ namespace :benchmark do
   end
 
   desc "Run worker loop (for manual scaling)"
-  task :run_worker => :environment do
+  task run_worker: :environment do
     if ENV["EXPLAIN_SAMPLER"] == "1"
       puts "Starting EXPLAIN sampler..."
       Adapters::Delayed.start_sampler!
@@ -26,16 +28,16 @@ namespace :benchmark do
   ensure
     if ENV["EXPLAIN_SAMPLER"] == "1"
       puts "Writing EXPLAIN results..."
-      Dir.mkdir("results") unless Dir.exist?("results")
+      FileUtils.mkdir_p("results")
       CSV.open("results/explain_samples-worker-#{Time.now.strftime('%Y%m%d-%H%M%S')}.csv", "w") do |csv|
-        csv << %w[timestamp rows_removed actual_rows buffers_read buffers_hit total_time]
+        csv << %w(timestamp rows_removed actual_rows buffers_read buffers_hit total_time)
         Adapters::Delayed.explain_samples.each { |row| csv << row.values }
       end
     end
   end
 
   desc "Monitor job queue until drained, and write benchmark result"
-  task :monitor, [:type, :count, :workers] => :environment do |_, args|
+  task :monitor, %i(type count workers) => :environment do |_, args|
     type = args[:type] || "fast"
     count = args[:count].to_i
     workers = args[:workers].to_i

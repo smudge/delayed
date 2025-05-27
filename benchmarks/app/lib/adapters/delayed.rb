@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "json"
 require "active_support/notifications"
 require "concurrent"
@@ -30,7 +32,7 @@ module Adapters
 
               @explain_results << extract_summary(plan)
               @last_sample_time.value = now
-            rescue => e
+            rescue StandardError => e
               puts "EXPLAIN failed: #{e.message}"
             end
           end
@@ -51,7 +53,7 @@ module Adapters
           actual_rows: scan["Actual Rows"] || 0,
           buffers_read: scan.dig("Buffers", "Shared Read") || 0,
           buffers_hit: scan.dig("Buffers", "Shared Hit") || 0,
-          total_time: plan["Actual Total Time"]
+          total_time: plan["Actual Total Time"],
         }
       end
     end
