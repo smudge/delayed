@@ -7,13 +7,17 @@ require_relative "../lib/benchmark_runner"
 namespace :benchmark do
   desc "Enqueue N jobs of a given type (e.g., fast, medium, slow)"
   task :enqueue, %i(type count) => :environment do |_, args|
-    puts "Enqueuing #{args[:count]} #{args[:type]} jobs..."
-    job_class = "#{args[:type].capitalize}Job".constantize
-    args[:count].to_i.times { job_class.perform_later }
+    puts "Resetting delayed_jobs table..."
     ActiveRecord::Base.connection.execute("TRUNCATE benchmark_stats;")
+    ActiveRecord::Base.connection.execute("TRUNCATE delayed_jobs;")
+    ActiveRecord::Base.connection.execute("VACUUM FULL delayed_jobs;")
+
+    puts "Enqueuing #{args[:count]} #{args[:type]} jobs..."
+    args[:count].to_i.times { "#{args[:type].capitalize}Job".constantize.perform_later }
     ActiveRecord::Base.connection.execute("INSERT INTO benchmark_stats (remaining) VALUES (#{args[:count]});")
 
-    puts "Clearing pg_stat_* tables..."
+    puts "Resetting database statistics..."
+    ActiveRecord::Base.connection.execute('ANALYZE delayed_jobs;')
     ActiveRecord::Base.connection.execute('SELECT pg_stat_statements_reset();')
     ActiveRecord::Base.connection.execute('SELECT pg_stat_reset();')
   end
@@ -40,10 +44,5 @@ namespace :benchmark do
       job_type: type,
       workers: workers,
     )
-  end
-
-  desc "Process and report benchmark results"
-  task process: :environment do
-    Benchmark::Runner.process_results
   end
 end

@@ -79,36 +79,28 @@ module Benchmark
         delayed_rows_deleted: row["n_tup_del"].to_i,
       )
 
+      # EXPLAIN samples (reported by first worker)
+      explain_samples = CSV.read("results/explain_samples.csv", headers: true)
+      string_keys = %w(timestamp node_types sort_methods index_names).freeze
+      result["explain_samples"] = explain_samples.size
+      (explain_samples.first.headers - string_keys).each do |key|
+        values = explain_samples.map { |r| r[key].to_f }
+        result.merge!(
+          "explain_#{key}" => {
+            "avg" => values.sum / values.size.to_f,
+            "max" => values.max,
+            "min" => values.min,
+            "median" => values.sort[(values.size * 0.5).ceil - 1],
+            "90p" => values.sort[(values.size * 0.90).ceil - 1],
+            "99p" => values.sort[(values.size * 0.99).ceil - 1],
+          },
+        )
+      end
+
       puts "\n\nRESULT:\n#{JSON.pretty_generate(result)}"
 
       FileUtils.mkdir_p("results")
       File.write("results/benchmark_result.json", JSON.pretty_generate(result))
-    end
-
-    def self.process_results
-      result_file = "results/benchmark_result.json"
-      explain_csvs = Dir["results/explain_samples-*.csv"].sort_by { |f| File.mtime(f) }
-
-      unless File.exist?(result_file)
-        puts "No benchmark result found. Run monitor first."
-        return
-      end
-
-      result = JSON.parse(File.read(result_file))
-      explain_samples = explain_csvs.last && CSV.read(explain_csvs.last, headers: true)
-
-      puts "\n\n=== Benchmark Result ==="
-      puts JSON.pretty_generate(result)
-
-      if explain_samples && explain_samples.any?
-        rows_removed = explain_samples.map { |row| row["rows_removed"].to_i }
-        avg_removed = rows_removed.sum / rows_removed.size.to_f
-        peak_removed = rows_removed.max
-
-        puts "\n-- Pickup Contention --"
-        puts "  Avg rows removed:  #{avg_removed.round(2)}"
-        puts "  Peak rows removed: #{peak_removed}"
-      end
     end
   end
 end
