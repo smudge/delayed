@@ -7,9 +7,11 @@ require_relative "../lib/benchmark_runner"
 namespace :benchmark do
   desc "Enqueue N jobs of a given type (e.g., fast, medium, slow)"
   task :enqueue, %i(type count) => :environment do |_, args|
-    job_class = "#{args[:type].capitalize}Job".constantize
     puts "Enqueuing #{args[:count]} #{args[:type]} jobs..."
+    job_class = "#{args[:type].capitalize}Job".constantize
     args[:count].to_i.times { job_class.perform_later }
+    ActiveRecord::Base.connection.execute("TRUNCATE benchmark_stats;")
+    ActiveRecord::Base.connection.execute("INSERT INTO benchmark_stats (remaining) VALUES (#{args[:count]});")
 
     puts "Clearing pg_stat_* tables..."
     ActiveRecord::Base.connection.execute('SELECT pg_stat_statements_reset();')
