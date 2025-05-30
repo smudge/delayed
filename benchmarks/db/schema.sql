@@ -15,6 +15,8 @@ CREATE TABLE delayed_jobs (
   updated_at timestamp DEFAULT now()
 );
 
+CREATE INDEX delayed_jobs_priority ON delayed_jobs USING btree (priority, run_at);
+
 CREATE TABLE benchmark_stats (
   id serial PRIMARY KEY,
   remaining integer NOT NULL
